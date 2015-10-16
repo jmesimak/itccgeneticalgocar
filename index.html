@@ -3,7 +3,7 @@
 <head>
   <script src="p2.js"></script>
   <script src="renderer.js"></script>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.min.js"></script>
+  <script src="lodash.min.js"></script>
 </head>
 
 <body>
@@ -17,10 +17,11 @@
     var MIN_BODY_DIMENSION = 0.5;
     var MAX_POP = 80;
     var SHAPES = ['Box', 'Capsule', 'Circle'];
-    var body;
+    var world;
+
 
     function generateVehicle(world) {
-      body = new p2.Body({
+      var body = new p2.Body({
         mass: getRandomIntInclusive(1, MAX_BODY_MASS),
         position: BEGIN_POS
       });
@@ -73,47 +74,81 @@
       }
     }
 
-    function test20(world) {
-      var spawned = 0;
-      var frame = 1;
-      var current;
-      var scores = [];
-      world.on('postStep', function() {
-        frame++;
-        if (frame % 600 === 0 && population.length > 0) {
-          frame = 1;
-
-          if (current) {
-            scores.push({vehicle: current, score: current.body.position[0]});
-          }
-
-          world.clear();
-          current = population.pop();
-          initPlane(world);
-          spawnVehicle(current, world);
-          spawned++;
-        } else if (population.length === 0) {
-          newPopulation(scores);
-        }
-
+    function genBody(first, second) {
+      var shape = first.body.shapes[0].constructor.name;
+      var mass = (first.body.mass + second.body.mass) / 2;
+      var width = (first.body.shapes[0].width + second.body.shapes[0].width) / 2;
+      var height = (first.body.shapes[0].height + second.body.shapes[0].height) / 2;
+      var body = new p2.Body({
+        mass: mass,
+        position: BEGIN_POS
       });
+      var shape = new p2[shape];
+      shape.width = width;
+      shape.height = height;
+      body.addShape(shape);
+      return body;
     }
 
-    function newPopulation() {
-      scores.forEach(function() {
-        
-      })
+    function genWheels(first, second, body) {
+      var wheelsAmount = Math.floor((first.wheels.length + second.wheels.length) / 2);
+      var shape = body.shapes[0];
+      var wheels = [];
+      for (var i = 0; i < wheelsAmount; i++) {
+        var wheelRadius = MAX_WHEEL_SIZE;
+        var wheelBodyX = body.position[0] + getRandomArbitrary(-(shape.width / 2), shape.width / 2);
+        var wheelBodyY = shape.width + getRandomArbitrary(-wheelRadius, wheelRadius);
+
+        var wheelBody = new p2.Body({
+          mass: 1,
+          position: [wheelBodyX, wheelBodyY]
+        });
+
+        var wheelShape = new p2.Circle({
+          radius: wheelRadius
+        });
+
+        wheelBody.addShape(wheelShape);
+        revolute = new p2.RevoluteConstraint(body, wheelBody, {
+          localPivotA: [wheelBodyX, wheelBodyY],
+          localPivotB: [0, 0],
+          collideConnected: false
+        });
+
+        revolute.enableMotor();
+        revolute.setMotorSpeed(getRandomIntInclusive(0, MAX_MOTOR_SPEED));
+        wheels.push({body: wheelBody, revolute: revolute});
+      }
+      return wheels;
     }
 
-    function spawnVehicle(vehicle, world) {
+    function newPopulation(scores) {
+      scores = _.sortBy(scores, function(s) {
+        return s.score;
+      });
+      console.log('best result');
+      best = scores.splice(10);
+      console.log(best[9]);
+      best.forEach(function(s, idx) {
+        var second = best[getRandomIntInclusive(0, 9)];
+        var newBody = genBody(s.vehicle, second.vehicle);
+        var wheels = genWheels(s.vehicle, second.vehicle, newBody);
+        population.push({body: newBody, wheels: wheels});
+      });
+      console.log('generated a new population!');
+    }
+
+    function spawnVehicle(vehicle) {
+      console.log(vehicle);
       world.addBody(vehicle.body);
       vehicle.wheels.forEach(function(w) {
         world.addConstraint(w.revolute);
         world.addBody(w.body);
       });
+      console.log('spawned');
     }
 
-    function initPlane(world) {
+    function initPlane() {
       planeShape = new p2.Plane();
 
       planeBody = new p2.Body({
@@ -160,132 +195,37 @@
 
     var app = new p2.WebGLRenderer(function() {
 
-      var world = new p2.World({
+      world = new p2.World({
         gravity: [0, -9.82]
       });
 
       this.setWorld(world);
 
       world.defaultContactMaterial.friction = 100;
+      generateInit20();
 
-      planeShape = new p2.Plane();
-
-      planeBody = new p2.Body({
-        mass: 0
-      });
-      planeBody.addShape(planeShape);
-      world.addBody(planeBody);
-
-      var b = generateVehicle(world);
-      var s = 0;
-      b.body.collisionGroup = s;
-      b.wheels.forEach(function(w) {
-        w.collisionGroup = s;
-      });
-      var i = 1;
+      var frame = 1;
+      var current;
       var scores = [];
-      var curPop = 1;
-      var newPop;
-
       world.on('postStep', function() {
-        i++;
-        if (i % 600 === 0 && curPop <= MAX_POP) {
-          s++;
-          var pos = b.body.position[0];
-          scores.push({
-            body: b.body,
-            wheels: b.wheels,
-            score: pos
-          });
+        frame++;
+        if (frame % 600 === 0 && population.length > 0) {
+          console.log('adding vehicle');
+          frame = 1;
+
+          if (current) {
+            scores.push({vehicle: current, score: current.body.position[0]});
+          }
+
           world.clear();
-          planeShape = new p2.Plane();
-
-          planeBody = new p2.Body({
-            mass: 0
-          });
-          planeBody.addShape(planeShape);
-          world.addBody(planeBody);
-          if (!newPop) {
-            b = generateVehicle(world);
-          } else {
-            b = newPop.pop();
-          }
-          curPop++;
-          i = 1;
-        } else if (curPop > MAX_POP) {
+          current = population.pop();
+          initPlane(world);
+          spawnVehicle(current, world);
+        } else if (population.length === 0) {
+          scores.push({vehicle: current, score: current.body.position[0]});
           world.clear();
-          console.log('evaluating');
-          if (MAX_POP < 5) {
-            console.log(scores);
-          }
-
-          curPop = 0;
-          MAX_POP = MAX_POP / 2;
-          _.sortBy(scores, function(s) {
-            return s.score;
-          });
-          var bestHalf = scores.splice(scores.length / 2);
-          var newPop = [];
-          console.log('merging 50% of the population');
-          for (var it = 0; it < bestHalf.length; it += 2) {
-            if (cur && next) {
-
-              var cur = bestHalf[it];
-              var next = bestHalf[it + 1];
-              var mass = cur.body.mass;
-              var width = next.body.shapes[0].width;
-              var height = cur.body.shapes[0].height;
-              var shape = next.body.shapes[0].constructor.name;
-              var wheels = [];
-
-              var body = new p2.Body({
-                mass: mass,
-                position: BEGIN_POS
-              });
-
-              var shape = new p2[shape];
-              shape.width = width;
-              shape.height = height;
-              body.addShape(shape);
-
-              cur.wheels.forEach(function() {
-                var wheelRadius = MAX_WHEEL_SIZE;
-                var wheelBodyX = body.position[0] + getRandomArbitrary(-(shape.width / 2), shape.width / 2);
-                var wheelBodyY = shape.width + getRandomArbitrary(-wheelRadius, wheelRadius);
-
-                var wheelBody = new p2.Body({
-                  mass: 1,
-                  position: [wheelBodyX, wheelBodyY]
-                });
-
-                var wheelShape = new p2.Circle({
-                  radius: wheelRadius
-                });
-
-                wheelBody.addShape(wheelShape);
-                wheels.push(wheelBody);
-                revolute = new p2.RevoluteConstraint(body, wheelBody, {
-                  localPivotA: [wheelBodyX, wheelBodyY],
-                  localPivotB: [0, 0],
-                  collideConnected: false
-                });
-
-                world.addConstraint(revolute);
-                revolute.enableMotor();
-                revolute.setMotorSpeed(getRandomIntInclusive(0, MAX_MOTOR_SPEED));
-                wheels.push(wheelBody);
-              });
-              newPop.push({
-                body: body,
-                wheels: wheels
-              });
-            }
-
-          }
-          console.log('merged');
-          scores = [];
+          newPopulation(scores);
         }
-
       });
 
       this.frame(0, 0, 8, 6);

@@ -1,0 +1,297 @@
+<html>
+
+<head>
+  <script src="p2.js"></script>
+  <script src="renderer.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.min.js"></script>
+</head>
+
+<body>
+  <script>
+    var MAX_WHEELS = 6;
+    var MAX_WHEEL_SIZE = 0.2;
+    var MAX_MOTOR_SPEED = 15;
+    var BEGIN_POS = [0, 5];
+    var MAX_BODY_MASS = 5;
+    var MAX_BODY_DIMENSION = 2.5;
+    var MIN_BODY_DIMENSION = 0.5;
+    var MAX_POP = 80;
+    var SHAPES = ['Box', 'Capsule', 'Circle'];
+    var body;
+
+    function generateVehicle(world) {
+      body = new p2.Body({
+        mass: getRandomIntInclusive(1, MAX_BODY_MASS),
+        position: BEGIN_POS
+      });
+
+      var shape = getRandomShape();
+      shape.width = getRandomArbitrary(MIN_BODY_DIMENSION, MAX_BODY_DIMENSION);
+      shape.height = getRandomArbitrary(MIN_BODY_DIMENSION, MAX_BODY_DIMENSION);
+
+      body.addShape(shape);
+
+      var wheels = [];
+
+      for (var i = 0; i < getRandomIntInclusive(1, 6); i++) {
+        var wheelRadius = MAX_WHEEL_SIZE;
+        var wheelBodyX = body.position[0] + getRandomArbitrary(-(shape.width / 2), shape.width / 2);
+        var wheelBodyY = shape.width + getRandomArbitrary(-wheelRadius, wheelRadius);
+
+        var wheelBody = new p2.Body({
+          mass: 1,
+          position: [wheelBodyX, wheelBodyY]
+        });
+
+        var wheelShape = new p2.Circle({
+          radius: wheelRadius
+        });
+
+        wheelBody.addShape(wheelShape);
+        revolute = new p2.RevoluteConstraint(body, wheelBody, {
+          localPivotA: [wheelBodyX, wheelBodyY],
+          localPivotB: [0, 0],
+          collideConnected: false
+        });
+
+        revolute.enableMotor();
+        revolute.setMotorSpeed(getRandomIntInclusive(0, MAX_MOTOR_SPEED));
+        wheels.push({body: wheelBody, revolute: revolute});
+      }
+
+      return {
+        body: body,
+        wheels: wheels
+      };
+    }
+
+    var population = [];
+
+    function generateInit20() {
+      for (var i = 0; i < 20; i++) {
+        population.push(generateVehicle());
+      }
+    }
+
+    function test20(world) {
+      var spawned = 0;
+      var frame = 1;
+      var current;
+      var scores = [];
+      world.on('postStep', function() {
+        frame++;
+        if (frame % 600 === 0 && population.length > 0) {
+          frame = 1;
+
+          if (current) {
+            scores.push({vehicle: current, score: current.body.position[0]});
+          }
+
+          world.clear();
+          current = population.pop();
+          initPlane(world);
+          spawnVehicle(current, world);
+          spawned++;
+        } else if (population.length === 0) {
+          newPopulation(scores);
+        }
+
+      });
+    }
+
+    function newPopulation() {
+      scores.forEach(function() {
+        
+      })
+    }
+
+    function spawnVehicle(vehicle, world) {
+      world.addBody(vehicle.body);
+      vehicle.wheels.forEach(function(w) {
+        world.addConstraint(w.revolute);
+        world.addBody(w.body);
+      });
+    }
+
+    function initPlane(world) {
+      planeShape = new p2.Plane();
+
+      planeBody = new p2.Body({
+        mass: 0
+      });
+      planeBody.addShape(planeShape);
+      world.addBody(planeBody);
+    }
+
+
+
+    function getRandomShape() {
+      var rnd = getRandomInt(0, 3);
+      var sString = SHAPES[rnd];
+      return new p2[sString];
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    function getRandomIntInclusive(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getRandomArbitrary(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function generateRandomShape() {
+      var body = new p2.Body({
+        mass: getRandomInt(1, 6),
+        position: [-4, 1]
+      });
+
+      shape.width = getRandomArbitrary(0.5, 2.5);
+      shape.height = getRandomArbitrary(0.5, 2.5);
+
+      body.addShape(shape);
+      world.addBody(body);
+
+
+    }
+
+    var app = new p2.WebGLRenderer(function() {
+
+      var world = new p2.World({
+        gravity: [0, -9.82]
+      });
+
+      this.setWorld(world);
+
+      world.defaultContactMaterial.friction = 100;
+
+      planeShape = new p2.Plane();
+
+      planeBody = new p2.Body({
+        mass: 0
+      });
+      planeBody.addShape(planeShape);
+      world.addBody(planeBody);
+
+      var b = generateVehicle(world);
+      var s = 0;
+      b.body.collisionGroup = s;
+      b.wheels.forEach(function(w) {
+        w.collisionGroup = s;
+      });
+      var i = 1;
+      var scores = [];
+      var curPop = 1;
+      var newPop;
+
+      world.on('postStep', function() {
+        i++;
+        if (i % 600 === 0 && curPop <= MAX_POP) {
+          s++;
+          var pos = b.body.position[0];
+          scores.push({
+            body: b.body,
+            wheels: b.wheels,
+            score: pos
+          });
+          world.clear();
+          planeShape = new p2.Plane();
+
+          planeBody = new p2.Body({
+            mass: 0
+          });
+          planeBody.addShape(planeShape);
+          world.addBody(planeBody);
+          if (!newPop) {
+            b = generateVehicle(world);
+          } else {
+            b = newPop.pop();
+          }
+          curPop++;
+          i = 1;
+        } else if (curPop > MAX_POP) {
+          world.clear();
+          console.log('evaluating');
+          if (MAX_POP < 5) {
+            console.log(scores);
+          }
+
+          curPop = 0;
+          MAX_POP = MAX_POP / 2;
+          _.sortBy(scores, function(s) {
+            return s.score;
+          });
+          var bestHalf = scores.splice(scores.length / 2);
+          var newPop = [];
+          console.log('merging 50% of the population');
+          for (var it = 0; it < bestHalf.length; it += 2) {
+            if (cur && next) {
+
+              var cur = bestHalf[it];
+              var next = bestHalf[it + 1];
+              var mass = cur.body.mass;
+              var width = next.body.shapes[0].width;
+              var height = cur.body.shapes[0].height;
+              var shape = next.body.shapes[0].constructor.name;
+              var wheels = [];
+
+              var body = new p2.Body({
+                mass: mass,
+                position: BEGIN_POS
+              });
+
+              var shape = new p2[shape];
+              shape.width = width;
+              shape.height = height;
+              body.addShape(shape);
+
+              cur.wheels.forEach(function() {
+                var wheelRadius = MAX_WHEEL_SIZE;
+                var wheelBodyX = body.position[0] + getRandomArbitrary(-(shape.width / 2), shape.width / 2);
+                var wheelBodyY = shape.width + getRandomArbitrary(-wheelRadius, wheelRadius);
+
+                var wheelBody = new p2.Body({
+                  mass: 1,
+                  position: [wheelBodyX, wheelBodyY]
+                });
+
+                var wheelShape = new p2.Circle({
+                  radius: wheelRadius
+                });
+
+                wheelBody.addShape(wheelShape);
+                wheels.push(wheelBody);
+                revolute = new p2.RevoluteConstraint(body, wheelBody, {
+                  localPivotA: [wheelBodyX, wheelBodyY],
+                  localPivotB: [0, 0],
+                  collideConnected: false
+                });
+
+                world.addConstraint(revolute);
+                revolute.enableMotor();
+                revolute.setMotorSpeed(getRandomIntInclusive(0, MAX_MOTOR_SPEED));
+                wheels.push(wheelBody);
+              });
+              newPop.push({
+                body: body,
+                wheels: wheels
+              });
+            }
+
+          }
+          console.log('merged');
+          scores = [];
+        }
+
+      });
+
+      this.frame(0, 0, 8, 6);
+    });
+  </script>
+
+</body>
+
+</html>

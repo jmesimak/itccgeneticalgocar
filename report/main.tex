@@ -1,0 +1,107 @@
+\documentclass[english]{tktltiki}
+
+%\usepackage[english]{babel}
+%\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+%\usepackage[pdftex]{graphicx}
+%\usepackage{subfigure}
+%\usepackage{url}
+
+\begin{document}
+%\doublespacing
+\singlespacing
+%\onehalfspacing
+
+\title{Introduction to Computational Creativity: \\
+Course Project and Take-Home Exam}
+
+\author{My Name \\
+(my student number)}
+
+\date{\today}
+
+\maketitle
+
+\pagenumbering{arabic}
+
+\section{Genetic algorithm for 2d vehicles}
+The goal of this system is to create vehicles in 2d space that are able to travel as far as possible within the given time (10 seconds in the tests).
+Generating the vehicles is based on a genetic algorithm that initially creates a population of 20 random vehicles, tests those, takes the 10 best candidates and mixes them together.
+The reproduction is done by taking two of the vehicles from the best candidates, getting the average of the properties of their bodies and creating a new vehicle based on those stats.
+The wheels however are randomized due the fact that the author was unable to prioritize his work. This loop will be executed ad infinitum. The best candidate of each population may be observed from the
+JavaScript console.
+
+[-- What does the system aim to create?\\
+-- Give a brief description of the main points and principles of your solution. (You may use Wiggins' terms here if they are useful, but there is no need to do so.)\\
+-- What were the major design choices you made, and why you made them?\\
+\emph{-- Please follow all instructions given in square brackets. You may delete these instructions from your final version, however. The same instructions are also in the Google document.}]
+
+
+
+\pagebreak
+\section{Libraries from the outside world}
+I utilized a physics library called p2.js from https://github.com/schteppe/p2.js that's in turn using the Pixi.js as a rendering engine. The functional JS library lodash https://lodash.com/ was also used.
+
+
+\section{Running Instructions}
+The program can be run with any modern browser by opening up the index.html from the project folder.
+
+
+\pagebreak
+\section{Project Results}
+Within a couple of populations a pattern seemed to emerge from the initial tests. It favored small rectangles of around 16:10 ratio with evenly distributed wheelsets. The maximum amount of wheels was 6 but
+the best results were achieved by vehicles with two to three wheels. Faster wheel revolution times were also more frequently appearing in the best vehicle of each population.
+
+According to those limited tests, it seems that typical car-like vehicles are indeed good for traversing flat terrains.
+
+Possible improvement for the algorithm could be one that tries to help with the placing of the wheels. A basic compass-style placement could've been utilized in a way where each side of the vehicle
+is given a point of the compass, and those points could be later used for the wheels instead of choosing a random point for each wheel. For example if vehicles with wheels in the South advance more than
+those whose wheels are placed in the North, it would be beneficial to start placing all the wheels to South in the later populations.
+
+\pagebreak
+
+\section{Creativity as Search}
+
+\paragraph{a. Description of the system as search}
+In the Wiggins' framework we can see the universe consisting of all different possible 2d vehicles, where the rules state that they have from one to six wheels and a body that's shaped as box, capsule or circle.
+There are also some arbitrary limits for speed and mass of the objects but they can be configured if necessary. One way to alter them beyond their initially given values would also be mutation. The evaluation
+can be done simply by observing how far the vehicle is able to travel within the given time. The method to produce these vehicles is a simple genetic algorithm that favors well performing vehicles and mixes their attributes
+to create new populations.
+
+\paragraph{b. Transformationality of the system}
+The system is not transformationally creative due to the fact that it has been given rather strict rules on how to produce vehicles. In reality it is quite hard to bring true transformational creativity
+to designing vehicles because they have already been engineered very thoroughly. Smaller changes such as moving from petrol to electricity and bringing AI to cars are happening right now, but in order to
+attain creativity on a level which outputs even such concepts, it would take a great deal of time.
+If more creative, but not truly viable solutions are sought, we could utilize springs, launchpads, and other objects that would be able to move the vehicle on the x axis rather quickly.
+
+\pagebreak
+\section{Creative Autonomy}
+The opinion on whether the vehicle is good or not is preprogrammed into the system and the programmer makes the decision on when and how to change the vehicle. According to our course materials
+this could be viewed as passing the first and the second criteria but I'm not entierly convinced that on this level, this system is autonomously creative. The third criteria is a strict no-pass since
+heavy randomization is used.
+
+\section{Evaluation}
+
+\paragraph{a. Inspiring set}
+The inspiring set is plainly put the fact that when wheels are attached to something, and they rotate, the whole thing might move in to some random direction under the right circumstances. This stems
+from the programmer's ability to observe the modern world.
+
+\paragraph{b. FACE}
+In the FACE model the programmer is responsible for the first Fp and Fg. He has decided what can be observed to be a vehicle and how they are assembled. That information is passed on to the program.
+The Ap is also provided by programmer as a specification of the fitness function, but that function could be seen to be the Ag and it is performed by the program. Cp is also an attribute of the program
+since it will continuously try to create new vehicles based on the information it collects from the older populations. The concept Cg is provided by the programmer. The genetic algorithm could be seen to be the
+Ep and the evaluation Eg whether the end product is actually a vehicle or piece of junk can be left to the observer.
+
+\pagebreak
+\section{Markov chains and genetic algorithms}
+
+–
+
+
+
+
+%\bibliographystyle{tktl}
+%\bibliography{literature}
+
+\end{document}

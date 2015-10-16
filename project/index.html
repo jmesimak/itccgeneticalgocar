@@ -9,7 +9,7 @@
 <body>
   <script>
     var MAX_WHEELS = 6;
-    var MAX_WHEEL_SIZE = 0.2;
+    var MAX_WHEEL_SIZE = 0.5;
     var MAX_MOTOR_SPEED = 15;
     var BEGIN_POS = [0, 5];
     var MAX_BODY_MASS = 5;
@@ -129,6 +129,7 @@
       console.log('best result');
       best = scores.splice(10);
       console.log(best[9]);
+      scores = [];
       best.forEach(function(s, idx) {
         var second = best[getRandomIntInclusive(0, 9)];
         var newBody = genBody(s.vehicle, second.vehicle);
